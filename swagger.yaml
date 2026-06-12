@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: API Historias Clínicas - Hospital
+  description: |
+    API RESTful para la gestión de historias clínicas básicas de pacientes.
+    Implementa versionamiento mediante el header `Accept` (ej. `application/vnd.hospital.v1+json`,
+    `application/vnd.hospital.v2+json`) y el esquema HATEOAS en sus respuestas.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor local (Docker)
+
+tags:
+  - name: Historias Clínicas
+  - name: Doctores
+
+paths:
+  /pacientes/{cedula}/historia-clinica:
+    get:
+      tags: [Historias Clínicas]
+      summary: Consultar historia clínica básica de un paciente por cédula
+      parameters:
+        - name: cedula
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1020304050"
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            default: application/vnd.hospital.v1+json
+            enum:
+              - application/vnd.hospital.v1+json
+              - application/vnd.hospital.v2+json
+              - application/json
+      responses:
+        '200':
+          description: Historia clínica encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoriaClinicaResponse'
+        '404':
+          description: Paciente no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '406':
+          description: Header Accept no soportado
+        '500':
+          description: Error interno del servidor
+
+  /historias-clinicas:
+    post:
+      tags: [Historias Clínicas]
+      summary: Registrar una nueva historia clínica de un paciente
+      parameters:
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            default: application/vnd.hospital.v1+json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HistoriaClinicaInput'
+            example:
+              cedula_paciente: "1020304050"
+              nombres_paciente: "Juan Carlos"
+              apellidos_paciente: "Pérez Gómez"
+              fecha_nacimiento: "1990-05-12"
+              sexo: "M"
+              tipo_sangre: "O+"
+              telefono: "3001234567"
+              direccion: "Calle 10 # 20-30, Medellín"
+              eps: "Sura"
+              cedula_medico: "900100200"
+              nombre_medico: "Laura Martínez"
+              especialidad: "Medicina General"
+              registro_medico_profesional: "RM-12345"
+              fecha_registro: "2026-06-12"
+              motivo_consulta: "Control rutinario"
+              sintomas: "Ninguno"
+              diagnostico: "Paciente sano"
+              tratamiento: "Continuar hábitos saludables"
+              observaciones: "Próximo control en 6 meses"
+              signos_vitales_presion: "118/76"
+              signos_vitales_temperatura: "36.5"
+              signos_vitales_frecuencia_cardiaca: "70"
+              peso: 76.0
+              altura: 1.78
+      responses:
+        '201':
+          description: Historia clínica creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+        '400':
+          description: Solicitud inválida - campos obligatorios faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+
+  /historias-clinicas/{id}:
+    get:
+      tags: [Historias Clínicas]
+      summary: Consultar el detalle de una historia clínica por su ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle de la historia clínica
+        '404':
+          description: Historia clínica no encontrada
+
+  /doctores:
+    get:
+      tags: [Doctores]
+      summary: Listar médicos registrados
+      responses:
+        '200':
+          description: Listado de doctores
+
+components:
+  schemas:
+    Paciente:
+      type: object
+      properties:
+        cedula:
+          type: string
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        fecha_nacimiento:
+          type: string
+          format: date
+        sexo:
+          type: string
+        tipo_sangre:
+          type: string
+        eps:
+          type: string
+        telefono:
+          type: string
+          description: Solo incluido en api_version v2
+        direccion:
+          type: string
+          description: Solo incluido en api_version v2
+
+    SignosVitales:
+      type: object
+      properties:
+        presion_arterial:
+          type: string
+        temperatura:
+          type: string
+        frecuencia_cardiaca:
+          type: string
+
+    Medico:
+      type: object
+      properties:
+        nombre:
+          type: string
+        cedula:
+          type: string
+        especialidad:
+          type: string
+
+    HistoriaItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        fecha_registro:
+          type: string
+          format: date
+        motivo_consulta:
+          type: string
+        sintomas:
+          type: string
+        diagnostico:
+          type: string
+        tratamiento:
+          type: string
+        observaciones:
+          type: string
+        signos_vitales:
+          $ref: '#/components/schemas/SignosVitales'
+        peso_kg:
+          type: number
+        altura_m:
+          type: number
+        medico:
+          $ref: '#/components/schemas/Medico'
+        _links:
+          type: object
+
+    HistoriaClinicaResponse:
+      type: object
+      properties:
+        api_version:
+          type: string
+          example: v1
+        paciente:
+          $ref: '#/components/schemas/Paciente'
+        total_registros:
+          type: integer
+        historias_clinicas:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoriaItem'
+        _links:
+          type: object
+
+    HistoriaClinicaInput:
+      type: object
+      required:
+        - cedula_paciente
+        - nombres_paciente
+        - apellidos_paciente
+        - cedula_medico
+        - nombre_medico
+        - fecha_registro
+        - motivo_consulta
+        - diagnostico
+      properties:
+        cedula_paciente:
+          type: string
+        nombres_paciente:
+          type: string
+        apellidos_paciente:
+          type: string
+        fecha_nacimiento:
+          type: string
+          format: date
+        sexo:
+          type: string
+        tipo_sangre:
+          type: string
+        telefono:
+          type: string
+        direccion:
+          type: string
+        eps:
+          type: string
+        cedula_medico:
+          type: string
+          description: Cédula del médico que realiza el registro
+        nombre_medico:
+          type: string
+          description: Nombre completo del médico que realiza el registro
+        especialidad:
+          type: string
+        registro_medico_profesional:
+          type: string
+        fecha_registro:
+          type: string
+          format: date
+          description: Fecha en la que se realiza el registro de la H.C.
+        motivo_consulta:
+          type: string
+        sintomas:
+          type: string
+        diagnostico:
+          type: string
+        tratamiento:
+          type: string
+        observaciones:
+          type: string
+        signos_vitales_presion:
+          type: string
+        signos_vitales_temperatura:
+          type: string
+        signos_vitales_frecuencia_cardiaca:
+          type: string
+        peso:
+          type: number
+        altura:
+          type: number
+
+    CreatedResponse:
+      type: object
+      properties:
+        api_version:
+          type: string
+        status:
+          type: integer
+          example: 201
+        message:
+          type: string
+        data:
+          type: object
+        _links:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
