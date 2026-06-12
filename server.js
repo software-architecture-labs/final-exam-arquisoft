@@ -14,23 +14,27 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Documentación Swagger / OpenAPI
-const swaggerDocument = YAML.load(path.join(__dirname, 'docs', 'swagger.yaml'));
+const swaggerDocument = YAML.load(path.join(__dirname, '..', 'docs', 'swagger.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rutas de la API
 app.use('/api', apiRoutes);
 
-// Servir frontend estático
-app.use('/', express.static(path.join(__dirname, '..', '..', 'frontend')));
+// Servir frontend estático (bonus)
+app.use('/', express.static(path.join(__dirname, '..', 'frontend')));
 
-// Ruta raíz informativa
+// Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP', service: 'hc-api', timestamp: new Date().toISOString() });
 });
 
-// Manejo de rutas no encontradas
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ status: 404, error: 'No encontrado', message: `Ruta ${req.originalUrl} no existe` });
+  res.status(404).json({
+    status: 404,
+    error: 'No encontrado',
+    message: `Ruta ${req.originalUrl} no existe`
+  });
 });
 
 app.listen(PORT, () => {

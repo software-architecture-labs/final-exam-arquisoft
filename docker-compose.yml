@@ -14,7 +14,6 @@ services:
       - DB_PATH=/app/data/hospital.db
     volumes:
       - hospital-db:/app/data
-      - ./src:/app/src
     restart: unless-stopped
     networks:
       - hospital-network
@@ -23,23 +22,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
-
-  # Opcional: Nginx como reverse proxy
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: hc-nginx
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./certs:/etc/nginx/certs:ro
-  #   depends_on:
-  #     - hc-api
-  #   networks:
-  #     - hospital-network
-  #   restart: unless-stopped
+      start_period: 10s
 
 volumes:
   hospital-db:

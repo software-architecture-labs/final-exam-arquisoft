@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HC-API | Historias Clínicas</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242838;
+      --border: #2e3347;
+      --accent: #4f9cf9;
+      --accent2: #38d9a9;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    header span { font-size: 0.8rem; color: var(--muted); background: var(--surface2); padding: 2px 8px; border-radius: 20px; }
+
+    nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tab {
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+    .tab:hover { background: var(--surface2); color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+    main { flex: 1; padding: 2rem; max-width: 900px; margin: 0 auto; width: 100%; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 1rem; }
+
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-success { background: var(--accent2); color: #0f1117; }
+
+    .result-box {
+      margin-top: 1.5rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .s200 { background: #166534; color: #86efac; }
+    .s201 { background: #14532d; color: #4ade80; }
+    .s404 { background: #7f1d1d; color: #fca5a5; }
+    .s400 { background: #78350f; color: #fcd34d; }
+    .s500 { background: #450a0a; color: #f87171; }
+
+    pre {
+      background: #0a0c12;
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #a5f3fc;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title { font-weight: 700; color: var(--accent2); margin-bottom: 0.5rem; }
+    .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 0.72rem; background: var(--surface2); color: var(--muted); margin-right: 4px; }
+
+    .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1rem 0 0.5rem; }
+
+    .loading { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+
+    .version-selector { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+    .version-selector label { font-size: 0.82rem; color: var(--muted); min-width: 70px; margin: 0; }
+    .version-selector select { max-width: 220px; }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏥 HC-API</h1>
+  <span>Historias Clínicas · Hospital</span>
+</header>
+
+<nav>
+  <button class="tab active" onclick="showTab('consultar')">🔍 Consultar HC</button>
+  <button class="tab" onclick="showTab('registrar')">➕ Registrar HC</button>
+  <button class="tab" onclick="showTab('doctores')">👨‍⚕️ Doctores</button>
+</nav>
+
+<main>
+  <!-- PANEL: Consultar -->
+  <div id="tab-consultar" class="panel active">
+    <h2>Consultar Historia Clínica por Cédula</h2>
+
+    <div class="version-selector">
+      <label>Versión API</label>
+      <select id="ver-get">
+        <option value="application/vnd.hospital.v1+json">v1 — Datos básicos</option>
+        <option value="application/vnd.hospital.v2+json">v2 — Con contacto</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Número de Cédula del Paciente</label>
+      <input id="cedula-input" type="text" placeholder="Ej: 1020304050" />
+    </div>
+
+    <button class="btn btn-primary" onclick="consultarHC()">Consultar</button>
+
+    <div id="result-get" class="result-box" style="display:none"></div>
+  </div>
+
+  <!-- PANEL: Registrar -->
+  <div id="tab-registrar" class="panel">
+    <h2>Registrar Nueva Historia Clínica</h2>
+
+    <div class="version-selector">
+      <label>Versión API</label>
+      <select id="ver-post">
+        <option value="application/vnd.hospital.v1+json">v1</option>
+        <option value="application/vnd.hospital.v2+json">v2</option>
+      </select>
+    </div>
+
+    <p class="section-title">Datos del Paciente</p>
+    <div class="grid-2">
+      <div class="field"><label>Cédula Paciente *</label><input id="p-cedula" placeholder="1020304050" /></div>
+      <div class="field"><label>Fecha Nacimiento</label><input id="p-fnac" type="date" /></div>
+      <div class="field"><label>Nombres *</label><input id="p-nombres" placeholder="Juan Carlos" /></div>
+      <div class="field"><label>Apellidos *</label><input id="p-apellidos" placeholder="Pérez Gómez" /></div>
+      <div class="field"><label>Sexo</label>
+        <select id="p-sexo"><option value="">Seleccionar</option><option value="M">Masculino</option><option value="F">Femenino</option></select>
+      </div>
+      <div class="field"><label>Tipo de Sangre</label>
+        <select id="p-sangre"><option value="">Seleccionar</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select>
+      </div>
+      <div class="field"><label>Teléfono</label><input id="p-tel" placeholder="3001234567" /></div>
+      <div class="field"><label>EPS</label><input id="p-eps" placeholder="Sura" /></div>
+    </div>
+    <div class="field"><label>Dirección</label><input id="p-dir" placeholder="Calle 10 # 20-30, Medellín" /></div>
+
+    <p class="section-title">Datos del Médico</p>
+    <div class="grid-2">
+      <div class="field"><label>Cédula Médico *</label><input id="m-cedula" placeholder="900100200" /></div>
+      <div class="field"><label>Nombre Médico *</label><input id="m-nombre" placeholder="Laura Martínez" /></div>
+      <div class="field"><label>Especialidad</label><input id="m-esp" placeholder="Medicina General" /></div>
+      <div class="field"><label>Registro Médico</label><input id="m-reg" placeholder="RM-12345" /></div>
+    </div>
+
+    <p class="section-title">Datos de la Consulta</p>
+    <div class="grid-2">
+      <div class="field"><label>Fecha Registro *</label><input id="c-fecha" type="date" /></div>
+      <div class="field"><label>Motivo Consulta *</label><input id="c-motivo" placeholder="Control rutinario" /></div>
+    </div>
+    <div class="field"><label>Síntomas</label><input id="c-sintomas" placeholder="Cefalea, mareo..." /></div>
+    <div class="field"><label>Diagnóstico *</label><input id="c-diagnostico" placeholder="Migraña tensional" /></div>
+    <div class="field"><label>Tratamiento</label><input id="c-tratamiento" placeholder="Acetaminofén 500mg cada 8h" /></div>
+    <div class="field"><label>Observaciones</label><input id="c-obs" placeholder="Observaciones adicionales" /></div>
+
+    <p class="section-title">Signos Vitales</p>
+    <div class="grid-2">
+      <div class="field"><label>Presión Arterial</label><input id="sv-presion" placeholder="120/80" /></div>
+      <div class="field"><label>Temperatura (°C)</label><input id="sv-temp" placeholder="36.8" /></div>
+      <div class="field"><label>Frec. Cardíaca (bpm)</label><input id="sv-fc" placeholder="78" /></div>
+      <div class="field"><label>Peso (kg)</label><input id="sv-peso" type="number" placeholder="75.5" /></div>
+      <div class="field"><label>Altura (m)</label><input id="sv-altura" type="number" step="0.01" placeholder="1.78" /></div>
+    </div>
+
+    <button class="btn btn-success" onclick="registrarHC()">Registrar Historia Clínica</button>
+
+    <div id="result-post" class="result-box" style="display:none"></div>
+  </div>
+
+  <!-- PANEL: Doctores -->
+  <div id="tab-doctores" class="panel">
+    <h2>Médicos Registrados</h2>
+    <button class="btn btn-primary" onclick="cargarDoctores()">Actualizar lista</button>
+    <div id="result-doctores" style="margin-top:1.5rem"></div>
+  </div>
+</main>
+
+<footer>
+  HC-API · <a href="/api-docs" target="_blank">📚 Swagger Docs</a> · <a href="/health" target="_blank">❤️ Health</a>
+</footer>
+
+<script>
+  const API = '/api';
+
+  function showTab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'doctores') cargarDoctores();
+  }
+
+  function statusClass(code) {
+    if (code >= 200 && code < 300) return code === 201 ? 's201' : 's200';
+    if (code === 404) return 's404';
+    if (code === 400) return 's400';
+    return 's500';
+  }
+
+  function renderResult(container, status, data) {
+    const sc = statusClass(status);
+    container.style.display = 'block';
+    container.innerHTML = `
+      <span class="status-badge ${sc}">HTTP ${status}</span>
+      <pre>${JSON.stringify(data, null, 2)}</pre>
+    `;
+  }
+
+  async function consultarHC() {
+    const cedula = document.getElementById('cedula-input').value.trim();
+    const version = document.getElementById('ver-get').value;
+    const box = document.getElementById('result-get');
+    if (!cedula) { alert('Ingresa una cédula'); return; }
+    box.style.display = 'block';
+    box.innerHTML = '<p class="loading">Consultando...</p>';
+    try {
+      const r = await fetch(`${API}/pacientes/${cedula}/historia-clinica`, {
+        headers: { 'Accept': version }
+      });
+      const data = await r.json();
+      renderResult(box, r.status, data);
+    } catch (e) {
+      box.innerHTML = `<span class="status-badge s500">Error de red</span><pre>${e.message}</pre>`;
+    }
+  }
+
+  async function registrarHC() {
+    const version = document.getElementById('ver-post').value;
+    const body = {
+      cedula_paciente: document.getElementById('p-cedula').value,
+      nombres_paciente: document.getElementById('p-nombres').value,
+      apellidos_paciente: document.getElementById('p-apellidos').value,
+      fecha_nacimiento: document.getElementById('p-fnac').value || undefined,
+      sexo: document.getElementById('p-sexo').value || undefined,
+      tipo_sangre: document.getElementById('p-sangre').value || undefined,
+      telefono: document.getElementById('p-tel').value || undefined,
+      direccion: document.getElementById('p-dir').value || undefined,
+      eps: document.getElementById('p-eps').value || undefined,
+      cedula_medico: document.getElementById('m-cedula').value,
+      nombre_medico: document.getElementById('m-nombre').value,
+      especialidad: document.getElementById('m-esp').value || undefined,
+      registro_medico_profesional: document.getElementById('m-reg').value || undefined,
+      fecha_registro: document.getElementById('c-fecha').value,
+      motivo_consulta: document.getElementById('c-motivo').value,
+      sintomas: document.getElementById('c-sintomas').value || undefined,
+      diagnostico: document.getElementById('c-diagnostico').value,
+      tratamiento: document.getElementById('c-tratamiento').value || undefined,
+      observaciones: document.getElementById('c-obs').value || undefined,
+      signos_vitales_presion: document.getElementById('sv-presion').value || undefined,
+      signos_vitales_temperatura: document.getElementById('sv-temp').value || undefined,
+      signos_vitales_frecuencia_cardiaca: document.getElementById('sv-fc').value || undefined,
+      peso: document.getElementById('sv-peso').value ? parseFloat(document.getElementById('sv-peso').value) : undefined,
+      altura: document.getElementById('sv-altura').value ? parseFloat(document.getElementById('sv-altura').value) : undefined
+    };
+
+    const box = document.getElementById('result-post');
+    box.style.display = 'block';
+    box.innerHTML = '<p class="loading">Registrando...</p>';
+    try {
+      const r = await fetch(`${API}/historias-clinicas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': version },
+        body: JSON.stringify(body)
+      });
+      const data = await r.json();
+      renderResult(box, r.status, data);
+    } catch (e) {
+      box.innerHTML = `<span class="status-badge s500">Error de red</span><pre>${e.message}</pre>`;
+    }
+  }
+
+  async function cargarDoctores() {
+    const box = document.getElementById('result-doctores');
+    box.innerHTML = '<p class="loading">Cargando doctores...</p>';
+    try {
+      const r = await fetch(`${API}/doctores`, { headers: { 'Accept': 'application/json' } });
+      const data = await r.json();
+      if (!data.doctores || data.doctores.length === 0) {
+        box.innerHTML = '<p class="loading">No hay doctores registrados.</p>';
+        return;
+      }
+      box.innerHTML = data.doctores.map(d => `
+        <div class="card">
+          <div class="card-title">Dr. ${d.nombres} ${d.apellidos}</div>
+          <span class="tag">CC: ${d.cedula}</span>
+          <span class="tag">${d.especialidad || 'Sin especialidad'}</span>
+          ${d.registro_medico ? `<span class="tag">${d.registro_medico}</span>` : ''}
+        </div>
+      `).join('');
+    } catch (e) {
+      box.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+    }
+  }
+
+  // Set today as default date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('c-fecha').value = today;
+</script>
+</body>
+</html>

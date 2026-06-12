@@ -4,12 +4,20 @@ const router = express.Router();
 const hcController = require('../controllers/historiaClinica.controller');
 const doctorController = require('../controllers/doctor.controller');
 
-// Middleware simple para validar el header Accept de versionamiento
+/**
+ * Middleware de versionamiento por Accept Header.
+ * Formatos aceptados:
+ *   application/json
+ *   application/* (wildcard)
+ *   application/vnd.hospital.v{n}+json
+ */
 function validarAccept(req, res, next) {
   const accept = req.headers['accept'] || '';
-  const valido = accept.includes('application/json') ||
-                  accept.includes('*/*') ||
-                  /application\/vnd\.hospital\.v\d+\+json/.test(accept);
+  const valido =
+    accept.includes('application/json') ||
+    accept.includes('*/*') ||
+    accept === '' ||
+    /application\/vnd\.hospital\.v\d+\+json/.test(accept);
 
   if (!valido) {
     return res.status(406).json({
@@ -23,16 +31,16 @@ function validarAccept(req, res, next) {
 
 router.use(validarAccept);
 
-// 1. GET historia clínica básica por cédula
+// 1. GET historia clínica básica por cédula de paciente
 router.get('/pacientes/:cedula/historia-clinica', hcController.getHistoriaPorCedula);
 
-// 2. POST registrar historia clínica
+// 2. POST registrar nueva historia clínica
 router.post('/historias-clinicas', hcController.crearHistoriaClinica);
 
-// GET detalle de una historia clínica específica (soporte HATEOAS)
+// GET detalle de una historia clínica por ID (soporte HATEOAS)
 router.get('/historias-clinicas/:id', hcController.getHistoriaPorId);
 
-// Recurso auxiliar: listado de doctores
+// GET listado de doctores
 router.get('/doctores', doctorController.getDoctores);
 
 module.exports = router;

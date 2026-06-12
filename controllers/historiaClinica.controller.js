@@ -1,12 +1,5 @@
 const HistoriaClinicaModel = require('../models/historiaClinica.model');
 
-/**
- * Determina la versión de la API a partir del header Accept.
- * Formatos soportados:
- *   application/vnd.hospital.v1+json
- *   application/vnd.hospital.v2+json
- * Por defecto: v1
- */
 function getApiVersion(req) {
   const accept = req.headers['accept'] || '';
   const match = accept.match(/application\/vnd\.hospital\.v(\d+)\+json/);
@@ -18,9 +11,6 @@ function baseUrl(req) {
   return `${req.protocol}://${req.get('host')}`;
 }
 
-/**
- * Construye los enlaces HATEOAS para un recurso de historia clínica de paciente.
- */
 function buildPacienteLinks(req, cedula) {
   const url = baseUrl(req);
   return {
@@ -40,7 +30,6 @@ function buildHistoriaLinks(req, historiaId, cedulaPaciente) {
 
 /**
  * GET /api/pacientes/:cedula/historia-clinica
- * Consulta la historia clínica básica de un paciente por cédula.
  */
 exports.getHistoriaPorCedula = async (req, res) => {
   try {
@@ -101,7 +90,7 @@ exports.getHistoriaPorCedula = async (req, res) => {
       _links: buildPacienteLinks(req, paciente.cedula)
     };
 
-    // En v2 se agrega información adicional de contacto (ejemplo de versionamiento)
+    // v2: incluye datos de contacto del paciente
     if (version === 'v2') {
       responseBody.paciente.telefono = paciente.telefono;
       responseBody.paciente.direccion = paciente.direccion;
@@ -115,14 +104,12 @@ exports.getHistoriaPorCedula = async (req, res) => {
 
 /**
  * POST /api/historias-clinicas
- * Registra una nueva historia clínica para un paciente.
  */
 exports.crearHistoriaClinica = async (req, res) => {
   try {
     const version = getApiVersion(req);
     const data = req.body;
 
-    // Validación de campos obligatorios
     const camposObligatorios = [
       'cedula_paciente', 'nombres_paciente', 'apellidos_paciente',
       'cedula_medico', 'nombre_medico', 'fecha_registro', 'motivo_consulta', 'diagnostico'
@@ -137,7 +124,6 @@ exports.crearHistoriaClinica = async (req, res) => {
       });
     }
 
-    // Mapear nombre del médico al modelo (cedula_medico -> cedula)
     const modelData = {
       ...data,
       cedula: data.cedula_medico,
@@ -147,7 +133,7 @@ exports.crearHistoriaClinica = async (req, res) => {
     const resultado = await HistoriaClinicaModel.create(modelData);
     const nueva = await HistoriaClinicaModel.findById(resultado.id);
 
-    const responseBody = {
+    return res.status(201).json({
       api_version: version,
       status: 201,
       message: 'Historia clínica registrada exitosamente',
@@ -169,9 +155,7 @@ exports.crearHistoriaClinica = async (req, res) => {
         self: { href: `${baseUrl(req)}/api/historias-clinicas/${nueva.id}`, method: 'GET' },
         paciente: { href: `${baseUrl(req)}/api/pacientes/${nueva.paciente_cedula}/historia-clinica`, method: 'GET' }
       }
-    };
-
-    return res.status(201).json(responseBody);
+    });
   } catch (error) {
     return res.status(500).json({ status: 500, error: 'Error interno', message: error.message });
   }
@@ -179,7 +163,6 @@ exports.crearHistoriaClinica = async (req, res) => {
 
 /**
  * GET /api/historias-clinicas/:id
- * Consulta el detalle de una historia clínica específica.
  */
 exports.getHistoriaPorId = async (req, res) => {
   try {
@@ -188,7 +171,11 @@ exports.getHistoriaPorId = async (req, res) => {
     const h = await HistoriaClinicaModel.findById(id);
 
     if (!h) {
-      return res.status(404).json({ status: 404, error: 'No encontrado', message: `Historia clínica ${id} no existe` });
+      return res.status(404).json({
+        status: 404,
+        error: 'No encontrado',
+        message: `Historia clínica ${id} no existe`
+      });
     }
 
     return res.status(200).json({
@@ -207,8 +194,15 @@ exports.getHistoriaPorId = async (req, res) => {
       },
       peso_kg: h.peso,
       altura_m: h.altura,
-      paciente: { cedula: h.paciente_cedula, nombres: h.paciente_nombres, apellidos: h.paciente_apellidos },
-      medico: { cedula: h.doctor_cedula, nombre: `${h.doctor_nombres} ${h.doctor_apellidos}` },
+      paciente: {
+        cedula: h.paciente_cedula,
+        nombres: h.paciente_nombres,
+        apellidos: h.paciente_apellidos
+      },
+      medico: {
+        cedula: h.doctor_cedula,
+        nombre: `${h.doctor_nombres} ${h.doctor_apellidos}`
+      },
       _links: buildHistoriaLinks(req, h.id, h.paciente_cedula)
     });
   } catch (error) {

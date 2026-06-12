@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, '..', '..', 'data', 'hospital.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'hospital.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -13,6 +13,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Inicialización del esquema
 db.serialize(() => {
+  db.run(`PRAGMA foreign_keys = ON`);
+
   // Entidad Paciente
   db.run(`
     CREATE TABLE IF NOT EXISTS pacientes (
@@ -43,7 +45,7 @@ db.serialize(() => {
     )
   `);
 
-  // Entidad Historia Clínica (relaciona Paciente y Doctor)
+  // Entidad Historia Clínica
   db.run(`
     CREATE TABLE IF NOT EXISTS historias_clinicas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +68,7 @@ db.serialize(() => {
     )
   `);
 
-  // Datos de ejemplo (seed)
+  // Seed: datos de ejemplo
   db.get(`SELECT COUNT(*) as count FROM pacientes`, (err, row) => {
     if (row && row.count === 0) {
       db.run(`INSERT INTO pacientes (cedula, nombres, apellidos, fecha_nacimiento, sexo, tipo_sangre, telefono, direccion, eps)

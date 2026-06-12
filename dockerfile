@@ -3,10 +3,7 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
 COPY package*.json ./
-
-# Instalar dependencias
 RUN npm ci --only=production
 
 # Etapa 2: Producción
@@ -14,23 +11,21 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Crear directorio para la BD
-RUN mkdir -p /app/data
+# Crear directorio para la BD y logs
+RUN mkdir -p /app/data /app/logs
 
-# Copiar node_modules desde builder
+# Copiar dependencias
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copiar código fuente
+# Copiar código fuente y docs
 COPY package*.json ./
 COPY src ./src
 COPY docs ./docs
+COPY frontend ./frontend
 
-# Exponer puerto
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Ejecutar aplicación
 CMD ["npm", "start"]

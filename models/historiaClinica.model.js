@@ -1,14 +1,9 @@
 const db = require('../config/db');
 
 const HistoriaClinicaModel = {
-  /**
-   * Busca la información básica de un paciente y sus historias clínicas
-   * por número de cédula.
-   */
   findByCedula: (cedula) => {
     return new Promise((resolve, reject) => {
-      const queryPaciente = `SELECT * FROM pacientes WHERE cedula = ?`;
-      db.get(queryPaciente, [cedula], (err, paciente) => {
+      db.get(`SELECT * FROM pacientes WHERE cedula = ?`, [cedula], (err, paciente) => {
         if (err) return reject(err);
         if (!paciente) return resolve(null);
 
@@ -23,7 +18,6 @@ const HistoriaClinicaModel = {
           WHERE hc.paciente_id = ?
           ORDER BY hc.fecha_registro DESC
         `;
-
         db.all(queryHistorias, [paciente.id], (err2, historias) => {
           if (err2) return reject(err2);
           resolve({ paciente, historias });
@@ -32,9 +26,6 @@ const HistoriaClinicaModel = {
     });
   },
 
-  /**
-   * Busca un doctor por cédula. Si no existe, lo crea (alta básica automática).
-   */
   findOrCreateDoctor: (doctor) => {
     return new Promise((resolve, reject) => {
       db.get(`SELECT * FROM doctores WHERE cedula = ?`, [doctor.cedula], (err, row) => {
@@ -42,10 +33,10 @@ const HistoriaClinicaModel = {
         if (row) return resolve(row.id);
 
         const { cedula, nombre_medico, especialidad, registro_medico } = doctor;
-        // nombre_medico viene como "Nombres Apellidos" -> se separa de forma simple
         const partes = (nombre_medico || '').trim().split(' ');
-        const nombres = partes.slice(0, Math.ceil(partes.length / 2)).join(' ') || nombre_medico;
-        const apellidos = partes.slice(Math.ceil(partes.length / 2)).join(' ') || '';
+        const mid = Math.ceil(partes.length / 2);
+        const nombres = partes.slice(0, mid).join(' ') || nombre_medico;
+        const apellidos = partes.slice(mid).join(' ') || '';
 
         db.run(
           `INSERT INTO doctores (cedula, nombres, apellidos, especialidad, registro_medico) VALUES (?, ?, ?, ?, ?)`,
@@ -59,9 +50,6 @@ const HistoriaClinicaModel = {
     });
   },
 
-  /**
-   * Busca un paciente por cédula. Si no existe, lo crea con datos básicos.
-   */
   findOrCreatePaciente: (paciente) => {
     return new Promise((resolve, reject) => {
       db.get(`SELECT * FROM pacientes WHERE cedula = ?`, [paciente.cedula_paciente], (err, row) => {
@@ -77,7 +65,8 @@ const HistoriaClinicaModel = {
           `INSERT INTO pacientes (cedula, nombres, apellidos, fecha_nacimiento, sexo, tipo_sangre, telefono, direccion, eps)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [cedula_paciente, nombres_paciente || 'N/A', apellidos_paciente || 'N/A',
-           fecha_nacimiento || null, sexo || null, tipo_sangre || null, telefono || null, direccion || null, eps || null],
+           fecha_nacimiento || null, sexo || null, tipo_sangre || null,
+           telefono || null, direccion || null, eps || null],
           function (err2) {
             if (err2) return reject(err2);
             resolve(this.lastID);
@@ -87,9 +76,6 @@ const HistoriaClinicaModel = {
     });
   },
 
-  /**
-   * Crea un nuevo registro de historia clínica.
-   */
   create: (data) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -104,8 +90,9 @@ const HistoriaClinicaModel = {
 
         db.run(
           `INSERT INTO historias_clinicas
-           (paciente_id, doctor_id, fecha_registro, motivo_consulta, sintomas, diagnostico, tratamiento, observaciones,
-            signos_vitales_presion, signos_vitales_temperatura, signos_vitales_frecuencia_cardiaca, peso, altura)
+           (paciente_id, doctor_id, fecha_registro, motivo_consulta, sintomas, diagnostico,
+            tratamiento, observaciones, signos_vitales_presion, signos_vitales_temperatura,
+            signos_vitales_frecuencia_cardiaca, peso, altura)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [pacienteId, doctorId, fecha_registro, motivo_consulta || null, sintomas || null,
            diagnostico || null, tratamiento || null, observaciones || null,
@@ -135,7 +122,7 @@ const HistoriaClinicaModel = {
       `;
       db.get(query, [id], (err, row) => {
         if (err) return reject(err);
-        resolve(row);
+        resolve(row || null);
       });
     });
   }
