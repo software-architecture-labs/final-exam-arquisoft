@@ -1,4 +1,4 @@
-# Etapa 1: Builder
+# ─── Etapa 1: Builder ────────────────────────────────────────────────────────
 FROM node:18-alpine AS builder
 
 WORKDIR /app
@@ -6,22 +6,26 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Etapa 2: Producción
+# ─── Etapa 2: Producción ─────────────────────────────────────────────────────
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Crear directorio para la BD y logs
+# Directorios para BD y logs
 RUN mkdir -p /app/data /app/logs
 
-# Copiar dependencias
+# Dependencias
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copiar código fuente y docs
+# Código fuente
 COPY package*.json ./
-COPY src ./src
-COPY docs ./docs
-COPY frontend ./frontend
+COPY src           ./src
+COPY config        ./config
+COPY controllers   ./controllers
+COPY models        ./models
+COPY routes        ./routes
+COPY docs          ./docs
+COPY frontend      ./frontend
 
 EXPOSE 3000
 
