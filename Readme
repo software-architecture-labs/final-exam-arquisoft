@@ -1,0 +1,580 @@
+# API Historias Clínicas - Hospital
+
+Sistema RESTful para gestión de historias clínicas de pacientes con versionamiento y HATEOAS.
+
+## 📋 Contenido
+
+- [Características](#características)
+- [Requisitos Previos](#requisitos-previos)
+- [Instalación](#instalación)
+- [Ejecución](#ejecución)
+- [Documentación API](#documentación-api)
+- [Ejemplos de Uso](#ejemplos-de-uso)
+- [Versionamiento](#versionamiento)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Tecnologías](#tecnologías)
+
+## ✨ Características
+
+- ✅ **GET**: Consultar historia clínica básica de pacientes por cédula
+- ✅ **POST**: Registrar nuevas historias clínicas con información completa
+- ✅ **Base de Datos Relacional**: SQLite3 con 3 entidades (Pacientes, Doctores, Historias)
+- ✅ **Documentación OpenAPI/Swagger**: Disponible en `/api-docs`
+- ✅ **Versionamiento**: Soporte para v1 y v2 mediante Accept Header
+- ✅ **HATEOAS**: Respuestas con enlaces relacionados
+- ✅ **Códigos HTTP**: Implementación correcta de status codes
+- ✅ **Docker**: Contenedorizado con Docker Compose
+- ✅ **Validación**: Middleware para validación de headers
+
+## 🛠 Requisitos Previos
+
+### Opción 1: Ejecución Local
+- Node.js >= 18.x
+- npm >= 9.x
+
+### Opción 2: Con Docker
+- Docker >= 20.10
+- Docker Compose >= 2.0
+
+## 📦 Instalación
+
+### Opción 1: Instalación Local
+
+1. **Clonar el repositorio**
+```bash
+git clone <repository-url>
+cd hc-api
+```
+
+2. **Instalar dependencias**
+```bash
+npm install
+```
+
+3. **Configurar variables de entorno**
+```bash
+cp .env.example .env
+# Editar .env según necesidad
+```
+
+4. **Crear estructura de directorios**
+```bash
+mkdir -p data logs docs
+```
+
+### Opción 2: Con Docker Compose
+
+```bash
+git clone <repository-url>
+cd hc-api
+docker-compose up --build
+```
+
+## 🚀 Ejecución
+
+### Ejecución Local
+
+```bash
+# Modo producción
+npm start
+
+# Modo desarrollo (con hot-reload)
+npm run dev
+```
+
+El servidor estará disponible en: `http://localhost:3000`
+
+### Con Docker Compose
+
+```bash
+# Iniciar servicios
+docker-compose up
+
+# Iniciar en background
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f hc-api
+
+# Detener servicios
+docker-compose down
+
+# Detener y limpiar volúmenes
+docker-compose down -v
+```
+
+### Comandos Docker Útiles
+
+```bash
+# Compilar imagen
+docker build -t hc-api:latest .
+
+# Ejecutar contenedor individual
+docker run -p 3000:3000 -v hospital-db:/app/data hc-api:latest
+
+# Acceder a shell del contenedor
+docker-compose exec hc-api sh
+
+# Ver estado de servicios
+docker-compose ps
+
+# Reiniciar servicio
+docker-compose restart hc-api
+```
+
+## 📖 Documentación API
+
+### Swagger/OpenAPI
+
+La documentación interactiva está disponible en:
+
+```
+http://localhost:3000/api-docs
+```
+
+### Health Check
+
+Verificar que el servicio está activo:
+
+```bash
+curl http://localhost:3000/health
+```
+
+**Respuesta:**
+```json
+{
+  "status": "UP",
+  "service": "hc-api",
+  "timestamp": "2026-06-12T10:30:45.123Z"
+}
+```
+
+## 📝 Ejemplos de Uso
+
+### 1. Consultar Historia Clínica por Cédula
+
+**Solicitud:**
+```bash
+curl -X GET http://localhost:3000/api/pacientes/1020304050/historia-clinica \
+  -H "Accept: application/vnd.hospital.v1+json"
+```
+
+**Respuesta (v1):**
+```json
+{
+  "api_version": "v1",
+  "paciente": {
+    "cedula": "1020304050",
+    "nombres": "Juan Carlos",
+    "apellidos": "Pérez Gómez",
+    "fecha_nacimiento": "1990-05-12",
+    "sexo": "M",
+    "tipo_sangre": "O+",
+    "eps": "Sura"
+  },
+  "total_registros": 1,
+  "historias_clinicas": [
+    {
+      "id": 1,
+      "fecha_registro": "2026-06-10",
+      "motivo_consulta": "Dolor de cabeza persistente",
+      "sintomas": "Cefalea, mareo",
+      "diagnostico": "Migraña tensional",
+      "tratamiento": "Acetaminofén 500mg cada 8 horas por 3 días",
+      "observaciones": "Paciente refiere estrés laboral",
+      "signos_vitales": {
+        "presion_arterial": "120/80",
+        "temperatura": "36.8",
+        "frecuencia_cardiaca": "78"
+      },
+      "peso_kg": 75.5,
+      "altura_m": 1.78,
+      "medico": {
+        "nombre": "Laura Martínez",
+        "cedula": "900100200",
+        "especialidad": "Medicina General"
+      },
+      "_links": {
+        "self": {
+          "href": "http://localhost:3000/api/historias-clinicas/1",
+          "method": "GET"
+        },
+        "paciente": {
+          "href": "http://localhost:3000/api/pacientes/1020304050/historia-clinica",
+          "method": "GET"
+        }
+      }
+    }
+  ],
+  "_links": {
+    "self": {
+      "href": "http://localhost:3000/api/pacientes/1020304050/historia-clinica",
+      "method": "GET"
+    },
+    "crear_historia": {
+      "href": "http://localhost:3000/api/historias-clinicas",
+      "method": "POST"
+    },
+    "doctores": {
+      "href": "http://localhost:3000/api/doctores",
+      "method": "GET"
+    }
+  }
+}
+```
+
+**Con Postman:**
+```
+GET http://localhost:3000/api/pacientes/1020304050/historia-clinica
+Headers:
+  Accept: application/vnd.hospital.v1+json
+  Content-Type: application/json
+```
+
+### 2. Registrar Nueva Historia Clínica
+
+**Solicitud:**
+```bash
+curl -X POST http://localhost:3000/api/historias-clinicas \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/vnd.hospital.v1+json" \
+  -d '{
+    "cedula_paciente": "1234567890",
+    "nombres_paciente": "María",
+    "apellidos_paciente": "González López",
+    "fecha_nacimiento": "1995-03-20",
+    "sexo": "F",
+    "tipo_sangre": "A+",
+    "telefono": "3109876543",
+    "direccion": "Calle 15 # 45-67, Medellín",
+    "eps": "EPS SURA",
+    "cedula_medico": "900100200",
+    "nombre_medico": "Laura Martínez",
+    "especialidad": "Medicina General",
+    "registro_medico_profesional": "RM-12345",
+    "fecha_registro": "2026-06-12",
+    "motivo_consulta": "Control rutinario",
+    "sintomas": "Ninguno",
+    "diagnostico": "Paciente sano",
+    "tratamiento": "Continuar hábitos saludables",
+    "observaciones": "Próximo control en 6 meses",
+    "signos_vitales_presion": "118/76",
+    "signos_vitales_temperatura": "36.5",
+    "signos_vitales_frecuencia_cardiaca": "70",
+    "peso": 62.5,
+    "altura": 1.65
+  }'
+```
+
+**Respuesta (201 Created):**
+```json
+{
+  "api_version": "v1",
+  "status": 201,
+  "message": "Historia clínica registrada exitosamente",
+  "data": {
+    "id": 2,
+    "fecha_registro": "2026-06-12",
+    "paciente": {
+      "cedula": "1234567890",
+      "nombres": "María",
+      "apellidos": "González López"
+    },
+    "medico_responsable": {
+      "cedula": "900100200",
+      "nombre": "Laura Martínez"
+    },
+    "diagnostico": "Paciente sano"
+  },
+  "_links": {
+    "self": {
+      "href": "http://localhost:3000/api/historias-clinicas/2",
+      "method": "GET"
+    },
+    "paciente": {
+      "href": "http://localhost:3000/api/pacientes/1234567890/historia-clinica",
+      "method": "GET"
+    }
+  }
+}
+```
+
+### 3. Listar Médicos Registrados
+
+**Solicitud:**
+```bash
+curl -X GET http://localhost:3000/api/doctores \
+  -H "Accept: application/json"
+```
+
+**Respuesta:**
+```json
+{
+  "total": 1,
+  "doctores": [
+    {
+      "cedula": "900100200",
+      "nombres": "Laura",
+      "apellidos": "Martínez",
+      "especialidad": "Medicina General",
+      "registro_medico": "RM-12345"
+    }
+  ],
+  "_links": {
+    "self": {
+      "href": "http://localhost:3000/api/doctores",
+      "method": "GET"
+    }
+  }
+}
+```
+
+### 4. Consultar Detalle de Historia Clínica
+
+**Solicitud:**
+```bash
+curl -X GET http://localhost:3000/api/historias-clinicas/1 \
+  -H "Accept: application/vnd.hospital.v1+json"
+```
+
+**Respuesta:**
+```json
+{
+  "api_version": "v1",
+  "id": 1,
+  "fecha_registro": "2026-06-10",
+  "motivo_consulta": "Dolor de cabeza persistente",
+  "sintomas": "Cefalea, mareo",
+  "diagnostico": "Migraña tensional",
+  "tratamiento": "Acetaminofén 500mg cada 8 horas por 3 días",
+  "observaciones": "Paciente refiere estrés laboral",
+  "signos_vitales": {
+    "presion_arterial": "120/80",
+    "temperatura": "36.8",
+    "frecuencia_cardiaca": "78"
+  },
+  "peso_kg": 75.5,
+  "altura_m": 1.78,
+  "paciente": {
+    "cedula": "1020304050",
+    "nombres": "Juan Carlos",
+    "apellidos": "Pérez Gómez"
+  },
+  "medico": {
+    "cedula": "900100200",
+    "nombre": "Laura Martínez"
+  },
+  "_links": {
+    "self": {
+      "href": "http://localhost:3000/api/historias-clinicas/1",
+      "method": "GET"
+    },
+    "paciente": {
+      "href": "http://localhost:3000/api/pacientes/1020304050/historia-clinica",
+      "method": "GET"
+    }
+  }
+}
+```
+
+## 🔄 Versionamiento
+
+### Versiones Soportadas
+
+La API soporta versionamiento mediante el header `Accept`:
+
+| Versión | Header | Cambios |
+|---------|--------|---------|
+| v1 | `application/vnd.hospital.v1+json` | Base: paciente sin teléfono/dirección |
+| v2 | `application/vnd.hospital.v2+json` | Incluye teléfono y dirección del paciente |
+| Default | `application/json` | Comportamiento por defecto (v1) |
+
+### Ejemplo de Diferencia v1 vs v2
+
+**v1:**
+```json
+{
+  "api_version": "v1",
+  "paciente": {
+    "cedula": "1020304050",
+    "nombres": "Juan Carlos",
+    "apellidos": "Pérez Gómez"
+  }
+}
+```
+
+**v2:**
+```json
+{
+  "api_version": "v2",
+  "paciente": {
+    "cedula": "1020304050",
+    "nombres": "Juan Carlos",
+    "apellidos": "Pérez Gómez",
+    "telefono": "3001234567",
+    "direccion": "Calle 10 # 20-30, Medellín"
+  }
+}
+```
+
+## 📁 Estructura del Proyecto
+
+```
+hc-api/
+├── Dockerfile                      # Configuración Docker
+├── docker-compose.yml              # Orquestación de servicios
+├── .dockerignore                   # Archivos ignorados en imagen
+├── .env.example                    # Variables de entorno
+├── .gitignore                      # Archivos ignorados en git
+├── .gitattributes                  # Configuración de líneas
+├── package.json                    # Dependencias Node.js
+├── README.md                       # Este archivo
+│
+├── src/
+│   ├── server.js                   # Servidor Express principal
+│   ├── routes/
+│   │   └── api.routes.js           # Definición de rutas
+│   ├── controllers/
+│   │   ├── historiaClinica.controller.js  # Lógica de HC
+│   │   └── doctor.controller.js           # Lógica de doctores
+│   ├── models/
+│   │   └── historiaClinica.model.js       # Modelo de datos HC
+│   ├── config/
+│   │   └── db.js                   # Configuración SQLite
+│   └── docs/
+│       └── swagger.yaml            # Especificación OpenAPI
+│
+├── data/
+│   └── hospital.db                 # Base de datos SQLite
+│
+└── tests/
+    ├── api.test.js                 # Tests de API
+    ├── historiaClinica.test.js     # Tests del controlador
+    └── doctor.test.js              # Tests de doctores
+```
+
+## 🔧 Tecnologías
+
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| Node.js | 18.x | Runtime JavaScript |
+| Express.js | 4.19.2 | Framework web |
+| SQLite3 | 5.1.7 | Base de datos |
+| Swagger UI | 5.0.1 | Documentación interactiva |
+| CORS | 2.8.5 | Cross-origin requests |
+| Body Parser | 1.20.2 | Parsing de JSON |
+| Docker | 20.10+ | Containerización |
+
+## 📊 Códigos de Respuesta HTTP
+
+| Código | Significado | Caso de Uso |
+|--------|------------|-----------|
+| 200 | OK | GET exitoso |
+| 201 | Created | Recurso creado exitosamente |
+| 400 | Bad Request | Campos obligatorios faltantes |
+| 404 | Not Found | Recurso no encontrado |
+| 406 | Not Acceptable | Header Accept no soportado |
+| 500 | Internal Server Error | Error en el servidor |
+
+## 🧪 Testing (Opcional)
+
+```bash
+# Instalar dependencias de testing
+npm install --save-dev jest supertest
+
+# Ejecutar tests
+npm test
+
+# Tests con cobertura
+npm test -- --coverage
+```
+
+## 🚀 Despliegue
+
+### En Producción con Docker
+
+```bash
+# Build optimizado
+docker build -t hc-api:latest .
+
+# Push a registry (Docker Hub ejemplo)
+docker tag hc-api:latest tu-usuario/hc-api:latest
+docker push tu-usuario/hc-api:latest
+
+# Desplegar
+docker-compose -f docker-compose.yml up -d
+```
+
+### Verificar Salud del Servicio
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Ver logs
+docker-compose logs -f hc-api
+
+# Estadísticas
+docker stats hc-api
+```
+
+## 🐛 Troubleshooting
+
+### Puerto 3000 en uso
+
+```bash
+# Cambiar puerto en docker-compose.yml
+ports:
+  - "3001:3000"
+
+# O matar proceso en puerto 3000
+lsof -i :3000
+kill -9 <PID>
+```
+
+### Errores de Base de Datos
+
+```bash
+# Limpiar volumen de BD
+docker-compose down -v
+
+# Reconstruir
+docker-compose up --build
+```
+
+### Contenedor no inicia
+
+```bash
+# Ver logs detallados
+docker-compose logs hc-api --follow
+
+# Acceder a shell
+docker-compose exec hc-api sh
+
+# Reintentar
+docker-compose restart hc-api
+```
+
+## 📝 Notas
+
+- La base de datos SQLite está persistida en volumen de Docker
+- Se incluyen datos de ejemplo (seed data) en la inicialización
+- El versionamiento está implementado mediante Accept Header
+- HATEOAS permite navegación entre recursos relacionados
+
+## 👥 Contribuciones
+
+Las contribuciones son bienvenidas. Para cambios mayores, por favor abre un issue primero para discutir.
+
+## 📄 Licencia
+
+Este proyecto es de código abierto bajo licencia MIT.
+
+## 📧 Contacto
+
+Para preguntas o soporte, contacta al equipo de desarrollo.
+
+---
+
+**Última actualización:** Junio 2026
+**Versión:** 1.0.0

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  hc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hc-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/hospital.db
+    volumes:
+      - hospital-db:/app/data
+      - ./src:/app/src
+    restart: unless-stopped
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Opcional: Nginx como reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: hc-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/etc/nginx/certs:ro
+  #   depends_on:
+  #     - hc-api
+  #   networks:
+  #     - hospital-network
+  #   restart: unless-stopped
+
+volumes:
+  hospital-db:
+    driver: local
+
+networks:
+  hospital-network:
+    driver: bridge
